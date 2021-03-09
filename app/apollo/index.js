@@ -92,7 +92,7 @@ const buildCommonApolloContext = async ({ models, req, res, connection, logger }
     context = { apiKey: apiKey, req: upgradeReq, req_id: upgradeReq ? upgradeReq.id : undefined, userToken, recoveryHintsMap, orgId, ...context };
   } else if (req) {
     context = { req, req_id: req.id, recoveryHintsMap, ...context };
-  } 
+  }
   return context;
 };
 
@@ -111,6 +111,9 @@ const loadCustomPlugins =  () => {
   }
   return [];
 };
+
+var SIGTERM = false;
+process.on('SIGTERM', () => SIGTERM = true);
 
 const createApolloServer = () => {
   const customPlugins = loadCustomPlugins();
@@ -165,15 +168,15 @@ const createApolloServer = () => {
 
         logger.trace({ req_id, connectionParams, context }, 'subscriptions:onConnect');
         const me = await models.User.getMeFromConnectionParams( connectionParams, {req_id, models, logger, ...context},);
-        
+
         logger.debug({ me }, 'subscriptions:onConnect upgradeReq getMe');
         if (me === undefined) {
           throw Error(
             'Can not find the session for this subscription request.',
           );
         }
-        
-        // add original upgrade request to the context 
+
+        // add original upgrade request to the context
         return { me, upgradeReq: webSocket.upgradeReq, logger, orgKey, orgId };
       },
       onDisconnect: (webSocket, context) => {
@@ -183,6 +186,13 @@ const createApolloServer = () => {
         );
       },
     },
+    onHealthCheck: async() => {
+      if(SIGTERM){
+        throw 'SIGTERM received. Not accepting additional requests';
+      }else {
+        return 200;
+      }
+    }
   });
   return server;
 };
@@ -239,7 +249,7 @@ const apollo = async (options = {}) => {
         port = options.graphql_port;
       }
       httpServer.listen({ port });
-    } 
+    }
     return { db, server, httpServer, stop};
   } catch (err) {
     logger.error(err, 'Apollo api error');

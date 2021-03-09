@@ -106,20 +106,21 @@ items:
                   port: 3333
                 initialDelaySeconds: 5
                 periodSeconds: 20
-                timeoutSeconds: 2
+                timeoutSeconds: 5
               readinessProbe:
-                exec:
-                  command: ["npm", "run", "wait-mongo"]
+                httpGet:
+                  path: /.well-known/apollo/server-health
+                  port: 3333
                 initialDelaySeconds: 5
-                periodSeconds: 15
-                timeoutSeconds: 10
+                periodSeconds: 20
+                timeoutSeconds: 5
               resources:
                 requests:
-                  cpu: 100m
-                  memory: 80Mi
-                limits:
                   cpu: 500m
-                  memory: 256Mi
+                  memory: 512Mi
+                limits:
+                  cpu: 2000m
+                  memory: 1Gi
               volumeMounts:
                 - name: add-cluster-webhook-headers-vol
                   mountPath: /var/run/secrets/razeeio/razeedash-api/add-cluster-webhook-headers
